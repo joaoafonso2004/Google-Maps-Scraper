@@ -7,7 +7,7 @@ Por defeito usa OpenStreetMap/Overpass e não precisa de API key, conta ou aloja
 ## O que já faz
 
 - Pesquisa por Portugal, uma área ou até oito cidades específicas.
-- Presets para clínicas dentárias, fisioterapia e stands automóveis.
+- Presets para clínicas dentárias, fisioterapia e stands automóveis, com seleção simultânea de vários setores.
 - Pesquisa personalizada para outros setores.
 - Filtro por número de avaliações Google.
 - Filtros dinâmicos por número de profissionais.
@@ -59,6 +59,7 @@ Escolhe **Gratuito · OpenStreetMap** dentro da aplicação. Este modo:
 - não exige conta nem API key;
 - suporta clínicas dentárias, fisioterapia e stands automóveis;
 - pesquisa uma área ou até três cidades de cada vez;
+- permite até seis combinações de setor e localização por pesquisa;
 - não fornece classificações nem avaliações Google;
 - respeita os limites dos serviços públicos e pode pedir para tentares mais tarde quando estão ocupados.
 
@@ -115,6 +116,7 @@ Controlos implementados:
 - No máximo três páginas por localização.
 - No máximo oito cidades por pesquisa.
 - Limite absoluto de doze pedidos por pesquisa.
+- O limite Google é repartido automaticamente entre os setores selecionados.
 - `FieldMask` limitado aos campos necessários.
 - Enriquecimento de, no máximo, vinte websites visíveis de cada vez.
 

@@ -34,6 +34,10 @@ export type SearchRequest = {
   filters: SearchFilters;
 };
 
+export type SearchBatchRequest = Omit<SearchRequest, "category"> & {
+  categories: CategoryKey[];
+};
+
 export type LeadSignals = {
   professionals: Evidence & { count?: number };
   reception: Evidence;

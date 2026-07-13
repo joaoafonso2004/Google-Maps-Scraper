@@ -33,7 +33,7 @@ const fieldMask = [
   "nextPageToken",
 ].join(",");
 
-export async function searchGooglePlaces(request: SearchRequest, apiKey: string): Promise<Lead[]> {
+export async function searchGooglePlaces(request: SearchRequest, apiKey: string, requestLimit = 12): Promise<Lead[]> {
   const config = getCategory(request.category);
   const query = request.category === "custom" ? request.customQuery?.trim() : config.query;
   if (!query) throw new Error("Indica o tipo de negócio a pesquisar.");
@@ -45,7 +45,7 @@ export async function searchGooglePlaces(request: SearchRequest, apiKey: string)
 
   for (const location of locations) {
     let pageToken: string | undefined;
-    for (let page = 0; page < pages && requestsMade < 12; page += 1) {
+    for (let page = 0; page < pages && requestsMade < requestLimit; page += 1) {
       const body: Record<string, unknown> = {
         textQuery: `${query} em ${location}, Portugal`,
         languageCode: "pt",

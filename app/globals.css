@@ -67,6 +67,7 @@ legend { padding: 0; margin-bottom: 10px; font-size: 11px; font-weight: 800; tex
 .category:hover { transform: translateY(-1px); border-color: #aeb9af; }
 .category.active { color: white; background: var(--forest); border-color: var(--forest); box-shadow: 0 8px 18px rgba(23,60,42,.17); }
 .category.active span { background: var(--lime); }
+.categoryHint { display: block; margin-top: 8px; color: var(--forest-2); font-size: 10px; font-weight: 700; }
 input, select, textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--card); outline: none; }
 input:focus, select:focus, textarea:focus { border-color: var(--forest-2); box-shadow: 0 0 0 3px rgba(36,88,63,.1); }
 textarea { resize: vertical; line-height: 1.5; }
@@ -89,6 +90,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .probableToggle::before { content: ""; width: 30px; height: 18px; border-radius: 10px; background: #c8c8c1; box-shadow: inset 0 0 0 2px rgba(0,0,0,.05); }
 .probableToggle:has(input:checked)::before { background: var(--forest-2); box-shadow: inset 12px 0 0 2px var(--lime); }
 .costHint { display: block; margin-top: 7px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.limitWarning { display: block; margin-top: 7px; padding: 7px 9px; border: 1px solid #e0b3aa; border-radius: 7px; color: #843f35; background: #fff0ed; font-size: 10px; line-height: 1.4; }
 .primaryButton { width: 100%; min-height: 51px; margin-top: 27px; display: flex; justify-content: center; align-items: center; gap: 10px; border: 0; border-radius: 10px; color: var(--forest); background: var(--lime); font-weight: 800; cursor: pointer; box-shadow: 0 10px 25px rgba(95,120,42,.18); }
 .primaryButton:hover { filter: brightness(.97); transform: translateY(-1px); }
 .primaryButton:disabled { opacity: .7; cursor: wait; }
@@ -149,6 +151,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .leadIdentity { min-width: 0; }
 .leadTitle { display: flex; align-items: center; gap: 8px; }
 .leadTitle h3 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font: 700 15px "Manrope"; }
+.leadCategory { flex: 0 0 auto; padding: 4px 7px; border-radius: 5px; color: var(--forest-2); background: #e5eee7; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .45px; }
 .qual { padding: 4px 7px; border-radius: 5px; color: var(--amber); background: #fbf1dc; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; }
 .qual.qualified { color: var(--green); background: #e0f1e7; }
 .qual.rejected { color: var(--red); background: #fae7e3; }

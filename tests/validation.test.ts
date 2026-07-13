@@ -9,7 +9,7 @@ import { isPrivateAddress } from "../lib/network-safety.ts";
 function validSearch() {
   return {
     provider: "osm",
-    category: "dental",
+    categories: ["dental"],
     area: "Lisboa",
     locationMode: "area",
     locations: ["Lisboa"],
@@ -20,8 +20,13 @@ function validSearch() {
 
 test("valida pedidos de pesquisa e rejeita intervalos impossíveis", () => {
   assert.ok(validateSearchRequest(validSearch()).data);
+  assert.ok(validateSearchRequest({ ...validSearch(), categories: ["dental", "physio"] }).data);
   assert.match(validateSearchRequest({ ...validSearch(), provider: "outra" }).error ?? "", /fonte/i);
+  assert.match(validateSearchRequest({ ...validSearch(), categories: [] }).error ?? "", /um e quatro/i);
+  assert.match(validateSearchRequest({ ...validSearch(), categories: ["dental", "dental"] }).error ?? "", /uma vez/i);
+  assert.match(validateSearchRequest({ ...validSearch(), categories: ["custom"] }).error ?? "", /Google/i);
   assert.match(validateSearchRequest({ ...validSearch(), locations: ["1", "2", "3", "4"] }).error ?? "", /máximo 3/i);
+  assert.match(validateSearchRequest({ ...validSearch(), categories: ["dental", "physio", "car_dealer"], locations: ["Lisboa", "Porto", "Braga"] }).error ?? "", /6 combinações/i);
   assert.match(validateSearchRequest({ ...validSearch(), filters: { ...defaultFilters(), minReviews: 100, maxReviews: 30 } }).error ?? "", /mínimo/i);
 });
 

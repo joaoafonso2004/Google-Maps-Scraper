@@ -5,7 +5,7 @@ import { OutreachPanel } from "@/components/OutreachPanel";
 import { categories, getCategory } from "@/lib/catalog";
 import { instagramProfileLink, phoneLink, whatsappWebLink } from "@/lib/contact-links";
 import { defaultFilters } from "@/lib/qualification";
-import type { CategoryKey, Lead, SearchFilters, SearchRequest } from "@/lib/types";
+import type { CategoryKey, Lead, SearchBatchRequest, SearchFilters } from "@/lib/types";
 
 type View = "all" | Lead["qualification"];
 
@@ -48,7 +48,7 @@ function ContactActions({ lead }: { lead: Lead }) {
 
 export default function Home() {
   const [provider, setProvider] = useState<"osm" | "google">("osm");
-  const [category, setCategory] = useState<CategoryKey>("dental");
+  const [selectedCategories, setSelectedCategories] = useState<CategoryKey[]>(["dental"]);
   const [customQuery, setCustomQuery] = useState("");
   const [locationMode, setLocationMode] = useState<"country" | "area" | "cities">("area");
   const [area, setArea] = useState("Lisboa");
@@ -64,13 +64,17 @@ export default function Home() {
   const [lastSearch, setLastSearch] = useState<string>();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const config = getCategory(category);
-  const supportsProfessionals = Boolean(config.professionalLabel);
+  const supportsProfessionals = selectedCategories.some((category) => Boolean(getCategory(category).professionalLabel));
+  const professionalLabel = selectedCategories.length === 1
+    ? getCategory(selectedCategories[0]).professionalLabel ?? "profissionais"
+    : "profissionais";
   const locations = useMemo(() => {
     if (locationMode === "country") return ["Portugal"];
     return area.split(",").map((item) => item.trim()).filter(Boolean).slice(0, provider === "osm" ? 3 : 8);
   }, [area, locationMode, provider]);
-  const estimatedRequests = provider === "osm" ? Math.min(3, locations.length) : Math.min(12, locations.length * maxPages);
+  const requestCombinations = locations.length * selectedCategories.length;
+  const exceedsFreeLimit = provider === "osm" && requestCombinations > 6;
+  const estimatedRequests = provider === "osm" ? Math.min(6, requestCombinations) : Math.min(12, requestCombinations * maxPages);
 
   useEffect(() => {
     fetch("/api/status")
@@ -80,10 +84,14 @@ export default function Home() {
     const saved = localStorage.getItem("radar-local:last-search");
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as { area?: string; category?: CategoryKey; locationMode?: "country" | "area" | "cities" };
+        const parsed = JSON.parse(saved) as { area?: string; category?: CategoryKey; categories?: CategoryKey[]; provider?: "osm" | "google"; locationMode?: "country" | "area" | "cities" };
+        const savedProvider = parsed.provider === "google" ? "google" : "osm";
+        setProvider(savedProvider);
         if (parsed.area) setArea(parsed.area);
-        if (parsed.category && categories[parsed.category]) setCategory(parsed.category);
-        if (parsed.locationMode) setLocationMode(parsed.locationMode);
+        const savedCategories = parsed.categories?.filter((category): category is CategoryKey => Boolean(categories[category]) && (savedProvider === "google" || category !== "custom"));
+        if (savedCategories?.length) setSelectedCategories([...new Set(savedCategories)]);
+        else if (parsed.category && categories[parsed.category] && (savedProvider === "google" || parsed.category !== "custom")) setSelectedCategories([parsed.category]);
+        if (parsed.locationMode) setLocationMode(savedProvider === "osm" && parsed.locationMode === "country" ? "area" : parsed.locationMode);
       } catch { /* Preferências antigas inválidas são ignoradas. */ }
     }
   }, []);
@@ -106,17 +114,20 @@ export default function Home() {
     setFilters((current) => ({ ...current, [key]: value }));
   };
 
+  function toggleCategory(category: CategoryKey) {
+    setSelectedCategories((current) => current.includes(category)
+      ? current.length === 1 ? current : current.filter((item) => item !== category)
+      : [...current, category]);
+  }
+
   async function handleSearch(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError("");
     setNotice("");
     const providerFilters = { ...filters, requireReviewRange: provider === "google" };
-    const appliedFilters = supportsProfessionals
-      ? providerFilters
-      : { ...providerFilters, minProfessionals: 0, maxProfessionals: 99 };
     const searchArea = locationMode === "country" ? "Portugal" : area;
-    const payload: SearchRequest = { provider, category, customQuery, area: searchArea, locationMode, locations, maxPages, filters: appliedFilters };
+    const payload: SearchBatchRequest = { provider, categories: selectedCategories, customQuery, area: searchArea, locationMode, locations, maxPages, filters: providerFilters };
     try {
       const response = await fetch("/api/search", {
         method: "POST",
@@ -131,7 +142,7 @@ export default function Home() {
       setNotice(data.notice || "");
       setLastSearch(data.searchedAt);
       setView("all");
-      localStorage.setItem("radar-local:last-search", JSON.stringify({ area, category, locationMode }));
+      localStorage.setItem("radar-local:last-search", JSON.stringify({ area, categories: selectedCategories, provider, locationMode }));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Não foi possível pesquisar.");
     } finally {
@@ -144,7 +155,7 @@ export default function Home() {
     setEnriching((current) => [...current, lead.id]);
     setError("");
     const providerFilters = { ...filters, requireReviewRange: provider === "google" };
-    const appliedFilters = supportsProfessionals ? providerFilters : { ...providerFilters, minProfessionals: 0, maxProfessionals: 99 };
+    const appliedFilters = getCategory(lead.category).professionalLabel ? providerFilters : { ...providerFilters, minProfessionals: 0, maxProfessionals: 99 };
     try {
       const response = await fetch("/api/enrich", {
         method: "POST",
@@ -194,7 +205,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `radar-local-${category}-${area.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}.csv`;
+    anchor.download = `radar-local-${selectedCategories.join("-")}-${area.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -216,7 +227,7 @@ export default function Home() {
         <div>
           <span className="eyebrow">PROSPECÇÃO LOCAL, COM PROVAS</span>
           <h1>Encontra os negócios<br />onde <em>consegues vender.</em></h1>
-          <p>Escolhe o setor e a área. O Radar recolhe, filtra e mostra o que ainda precisa de ser confirmado.</p>
+          <p>Escolhe um ou vários setores e a área. O Radar recolhe, filtra e mostra o que ainda precisa de ser confirmado.</p>
         </div>
         <div className="heroMetric">
           <span>Potencial SaaS médio</span>
@@ -233,21 +244,29 @@ export default function Home() {
             <fieldset>
               <legend>Fonte dos negócios</legend>
               <div className="providerSwitch">
-                <button type="button" className={provider === "osm" ? "active" : ""} onClick={() => { setProvider("osm"); if (locationMode === "country") setLocationMode("area"); if (category === "custom") setCategory("dental"); }}><b>Gratuito</b><small>OpenStreetMap</small></button>
+                <button type="button" className={provider === "osm" ? "active" : ""} onClick={() => {
+                  setProvider("osm");
+                  if (locationMode === "country") setLocationMode("area");
+                  setSelectedCategories((current) => {
+                    const supported = current.filter((category) => category !== "custom");
+                    return supported.length ? supported : ["dental"];
+                  });
+                }}><b>Gratuito</b><small>OpenStreetMap</small></button>
                 <button type="button" className={provider === "google" ? "active" : ""} onClick={() => setProvider("google")}><b>Google</b><small>Requer API key</small></button>
               </div>
             </fieldset>
 
             <fieldset>
-              <legend>Tipo de negócio</legend>
+              <legend>Tipos de negócio</legend>
               <div className="categoryGrid">
                 {(Object.values(categories) as typeof categories[CategoryKey][]).map((item) => (
-                  <button disabled={provider === "osm" && item.key === "custom"} className={category === item.key ? "category active" : "category"} type="button" key={item.key} onClick={() => setCategory(item.key)}>
+                  <button disabled={provider === "osm" && item.key === "custom"} className={selectedCategories.includes(item.key) ? "category active" : "category"} type="button" key={item.key} onClick={() => toggleCategory(item.key)} aria-pressed={selectedCategories.includes(item.key)}>
                     <span>{item.icon}</span>{item.shortName}
                   </button>
                 ))}
               </div>
-              {category === "custom" && <input value={customQuery} onChange={(event) => setCustomQuery(event.target.value)} placeholder="Ex.: oficinas de bicicletas" required />}
+              <small className="categoryHint">Seleciona um ou vários setores · {selectedCategories.length} {selectedCategories.length === 1 ? "selecionado" : "selecionados"}</small>
+              {selectedCategories.includes("custom") && <input value={customQuery} onChange={(event) => setCustomQuery(event.target.value)} placeholder="Ex.: oficinas de bicicletas" required />}
             </fieldset>
 
             <fieldset>
@@ -259,6 +278,7 @@ export default function Home() {
               </div>
               {locationMode !== "country" && <label className="inputWithIcon"><span>⌖</span><input value={area} onChange={(event) => setArea(event.target.value)} placeholder={locationMode === "cities" ? "Lisboa, Porto, Braga" : "Cidade, concelho ou distrito"} required /></label>}
               {locationMode === "cities" && <small className="costHint">Separa as cidades por vírgulas. Máximo de {provider === "osm" ? 3 : 8} por pesquisa.</small>}
+              {exceedsFreeLimit && <small className="limitWarning">Reduz os setores ou as cidades: o modo gratuito permite até 6 combinações por pesquisa.</small>}
             </fieldset>
 
             {provider === "google" ? <fieldset>
@@ -270,11 +290,12 @@ export default function Home() {
             </fieldset> : <div className="freeNote"><b>Avaliações Google por validar</b><span>O modo gratuito encontra negócios e contactos, mas não fornece reviews Google.</span></div>}
 
             {supportsProfessionals && <fieldset>
-              <div className="legendRow"><legend>N.º de {config.professionalLabel}</legend><span>{filters.minProfessionals}–{filters.maxProfessionals}</span></div>
+              <div className="legendRow"><legend>N.º de {professionalLabel}</legend><span>{filters.minProfessionals}–{filters.maxProfessionals}</span></div>
               <div className="twoInputs">
                 <label><small>Mínimo</small><input type="number" min="0" value={filters.minProfessionals} onChange={(event) => setFilter("minProfessionals", Number(event.target.value))} /></label>
                 <label><small>Máximo</small><input type="number" min="1" value={filters.maxProfessionals} onChange={(event) => setFilter("maxProfessionals", Number(event.target.value))} /></label>
               </div>
+              {selectedCategories.some((category) => !getCategory(category).professionalLabel) && <small className="costHint">Este intervalo é ignorado nos setores sem função profissional configurada.</small>}
             </fieldset>}
 
             <fieldset>
@@ -303,7 +324,7 @@ export default function Home() {
               <small className="costHint">Estimativa: até {Math.min(240, estimatedRequests * 20)} candidatos antes de remover duplicados.</small>
             </fieldset>}
 
-            <button className="primaryButton" disabled={loading} type="submit">
+            <button className="primaryButton" disabled={loading || exceedsFreeLimit} type="submit">
               {loading ? <><span className="spinner" />A pesquisar…</> : <>Iniciar pesquisa <span>→</span></>}
             </button>
           </form>
@@ -345,7 +366,7 @@ export default function Home() {
                     <label className="leadSelect" title="Selecionar para campanha"><input type="checkbox" checked={selectedIds.includes(lead.id)} onChange={() => toggleLead(lead.id)} /><span>✓</span></label>
                     <div className={`score ${scoreTier(lead.score)}`}><strong>{lead.score}</strong><small>SaaS</small></div>
                     <div className="leadIdentity">
-                      <div className="leadTitle"><h3>{lead.name}</h3><span className={`qual ${lead.qualification}`}>{qualificationText[lead.qualification]}</span></div>
+                      <div className="leadTitle"><h3>{lead.name}</h3><span className="leadCategory">{categories[lead.category].shortName}</span><span className={`qual ${lead.qualification}`}>{qualificationText[lead.qualification]}</span></div>
                       <p>{lead.address}</p>
                       <div className="facts">
                         <span>{lead.reviewCountKnown ? <><b>★ {lead.rating?.toFixed(1) ?? "—"}</b> {lead.reviewCount} avaliações</> : <b>Avaliações por validar</b>}</span>
