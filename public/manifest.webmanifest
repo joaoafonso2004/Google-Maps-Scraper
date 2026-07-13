@@ -1,0 +1,9 @@
+{
+  "name": "Radar Local",
+  "short_name": "Radar Local",
+  "description": "Prospecção local qualificada com evidências públicas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f1e8",
+  "theme_color": "#15291e"
+}
