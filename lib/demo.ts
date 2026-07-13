@@ -39,7 +39,7 @@ function demoLead(input: Partial<Lead> & Pick<Lead, "id" | "name" | "reviewCount
 }
 
 export function getDemoLeads(category: CategoryKey, area: string, filters: SearchFilters): Lead[] {
-  const label = category === "car_dealer" ? "Auto" : category === "physio" ? "Movimento" : "Clínica";
+  const label = category === "veterinary" ? "Clínica Vet" : category === "physio" ? "Movimento" : "Clínica";
   const leads = [
     demoLead({ id: "demo-1", name: `${label} Aurora`, reviewCount: 184, area, address: `Rua Central, ${area}`, phone: "+351 912 345 678", email: "geral@example.com", instagram: "@clinicaaurora" }, category),
     demoLead({ id: "demo-2", name: `${label} do Jardim`, reviewCount: 67, area, address: `Avenida da República, ${area}`, signals: {

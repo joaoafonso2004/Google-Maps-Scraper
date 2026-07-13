@@ -7,7 +7,7 @@ export type Evidence = {
   sourceUrl?: string;
 };
 
-export type CategoryKey = "dental" | "physio" | "car_dealer" | "custom";
+export type CategoryKey = "dental" | "physio" | "veterinary" | "custom";
 
 export type SearchFilters = {
   requireReviewRange: boolean;

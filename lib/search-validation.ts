@@ -1,7 +1,7 @@
 import type { CategoryKey, SearchBatchRequest, SearchFilters } from "./types";
 
 const providers = new Set(["osm", "google"]);
-const categories = new Set<CategoryKey>(["dental", "physio", "car_dealer", "custom"]);
+const categories = new Set<CategoryKey>(["dental", "physio", "veterinary", "custom"]);
 const locationModes = new Set(["country", "area", "cities"]);
 const booleanFilters: (keyof SearchFilters)[] = [
   "requireReviewRange", "requireOperational", "requirePublicContact", "requireReception",

@@ -18,7 +18,7 @@ const geoCache = new Map<string, NominatimResult>();
 const osmFilters: Record<Exclude<CategoryKey, "custom">, string[]> = {
   dental: ['["amenity"="dentist"]', '["healthcare"="dentist"]'],
   physio: ['["healthcare"="physiotherapist"]'],
-  car_dealer: ['["shop"="car"]'],
+  veterinary: ['["amenity"="veterinary"]', '["healthcare"="veterinary"]'],
 };
 
 async function geocode(location: string) {
