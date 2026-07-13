@@ -14,12 +14,80 @@ type OsmElement = { id: number; type: "node" | "way" | "relation"; tags?: Record
 type OverpassResponse = { elements?: OsmElement[] };
 
 const geoCache = new Map<string, NominatimResult>();
+const customSearchCache = new Map<string, { expiresAt: number; results: NominatimResult[] }>();
+const overpassCache = new Map<string, { expiresAt: number; data: OverpassResponse }>();
+const cacheTtlMs = 30 * 60 * 1_000;
+const overpassEndpoints = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+];
+let nominatimQueue: Promise<void> = Promise.resolve();
+let nextNominatimRequestAt = 0;
 
 const osmFilters: Record<Exclude<CategoryKey, "custom">, string[]> = {
   dental: ['["amenity"="dentist"]', '["healthcare"="dentist"]'],
   physio: ['["healthcare"="physiotherapist"]'],
   veterinary: ['["amenity"="veterinary"]', '["healthcare"="veterinary"]'],
 };
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function retryDelay(response: Response) {
+  const seconds = Number(response.headers.get("retry-after"));
+  return Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds * 1_000, 10_000) : 2_000;
+}
+
+async function fetchNominatim(url: URL, timeoutMs: number) {
+  const task = nominatimQueue.then(async () => {
+    await wait(Math.max(0, nextNominatimRequestAt - Date.now()));
+    let response: Response | undefined;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      response = await fetch(url, {
+        headers: { "User-Agent": "RadarLocal/0.1 (local lead research application)", "Accept-Language": "pt" },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      nextNominatimRequestAt = Date.now() + 1_100;
+      if (response.status !== 429 || attempt === 1) return response;
+      await wait(retryDelay(response));
+    }
+    return response!;
+  });
+  nominatimQueue = task.then(() => undefined, () => undefined);
+  return task;
+}
+
+async function fetchOverpass(query: string) {
+  const cached = overpassCache.get(query);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+  let lastStatus: number | undefined;
+  let lastError: unknown;
+
+  for (const [index, endpoint] of overpassEndpoints.entries()) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "RadarLocal/0.1 (local lead research application)" },
+        body: new URLSearchParams({ data: query }),
+        signal: AbortSignal.timeout(22_000),
+      });
+      lastStatus = response.status;
+      if (response.ok) {
+        const data = (await response.json()) as OverpassResponse;
+        overpassCache.set(query, { expiresAt: Date.now() + cacheTtlMs, data });
+        return data;
+      }
+      if (response.status < 500 && response.status !== 429) break;
+    } catch (error) {
+      lastError = error;
+    }
+    if (index < overpassEndpoints.length - 1) await wait(1_100);
+  }
+
+  if (lastStatus) throw new Error(`Os servidores gratuitos estão temporariamente ocupados (${lastStatus}). A app já tentou uma alternativa; volta a tentar dentro de alguns minutos.`);
+  throw new Error(lastError instanceof Error ? `Não foi possível contactar os servidores gratuitos: ${lastError.message}` : "Não foi possível contactar os servidores gratuitos.");
+}
 
 async function geocode(location: string) {
   const key = location.toLocaleLowerCase("pt");
@@ -29,11 +97,8 @@ async function geocode(location: string) {
   url.searchParams.set("q", `${location}, Portugal`);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("limit", "1");
-  const response = await fetch(url, {
-    headers: { "User-Agent": "RadarLocal/0.1 (local lead research application)", "Accept-Language": "pt" },
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!response.ok) throw new Error(`Não foi possível localizar ${location} no OpenStreetMap.`);
+  const response = await fetchNominatim(url, 15_000);
+  if (!response.ok) throw new Error(response.status === 429 ? "O serviço de localizações atingiu o limite temporário. Aguarda um minuto e tenta novamente." : `Não foi possível localizar ${location} no OpenStreetMap.`);
   const results = (await response.json()) as NominatimResult[];
   if (!results[0]?.boundingbox) throw new Error(`A localização “${location}” não foi encontrada.`);
   geoCache.set(key, results[0]);
@@ -114,8 +179,11 @@ async function searchCustomOpenStreetMap(request: SearchRequest, locations: stri
   const unique = new Map<string, Lead>();
 
   for (let index = 0; index < locations.length; index += 1) {
-    if (index > 0) await new Promise((resolve) => setTimeout(resolve, 1_100));
+    if (index > 0) await wait(1_100);
     const location = locations[index];
+    const cacheKey = `${query.toLocaleLowerCase("pt")}|${location.toLocaleLowerCase("pt")}`;
+    const cached = customSearchCache.get(cacheKey);
+    let results = cached && cached.expiresAt > Date.now() ? cached.results : undefined;
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("q", `${query}, ${location}, Portugal`);
     url.searchParams.set("format", "jsonv2");
@@ -123,12 +191,12 @@ async function searchCustomOpenStreetMap(request: SearchRequest, locations: stri
     url.searchParams.set("addressdetails", "1");
     url.searchParams.set("extratags", "1");
     url.searchParams.set("namedetails", "1");
-    const response = await fetch(url, {
-      headers: { "User-Agent": "RadarLocal/0.1 (local lead research application)", "Accept-Language": "pt" },
-      signal: AbortSignal.timeout(20_000),
-    });
-    if (!response.ok) throw new Error(`O serviço gratuito está ocupado (${response.status}). Tenta novamente dentro de alguns minutos.`);
-    const results = (await response.json()) as NominatimResult[];
+    if (!results) {
+      const response = await fetchNominatim(url, 20_000);
+      if (!response.ok) throw new Error(response.status === 429 ? "O serviço de pesquisa gratuita atingiu o limite temporário. Aguarda um minuto e tenta novamente." : `O serviço gratuito está ocupado (${response.status}). Tenta novamente dentro de alguns minutos.`);
+      results = (await response.json()) as NominatimResult[];
+      customSearchCache.set(cacheKey, { expiresAt: Date.now() + cacheTtlMs, results });
+    }
     for (const result of results) {
       if (!result.osm_id || !result.osm_type || result.category === "boundary" || result.category === "place") continue;
       const name = result.name || result.display_name.split(",")[0]?.trim();
@@ -156,19 +224,12 @@ export async function searchOpenStreetMap(request: SearchRequest): Promise<Lead[
   if (request.category === "custom") return searchCustomOpenStreetMap(request, locations);
   const unique = new Map<string, Lead>();
   for (let index = 0; index < locations.length; index += 1) {
-    if (index > 0) await new Promise((resolve) => setTimeout(resolve, 1_100));
+    if (index > 0) await wait(1_100);
     const location = locations[index];
     const geo = await geocode(location);
     const [south, north, west, east] = geo.boundingbox!;
     const query = queryFor(request.category, `${south},${west},${north},${east}`);
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "RadarLocal/0.1 (local lead research application)" },
-      body: new URLSearchParams({ data: query }),
-      signal: AbortSignal.timeout(35_000),
-    });
-    if (!response.ok) throw new Error(`O serviço gratuito está ocupado (${response.status}). Tenta novamente dentro de alguns minutos.`);
-    const data = (await response.json()) as OverpassResponse;
+    const data = await fetchOverpass(query);
     for (const element of data.elements ?? []) {
       const tags = element.tags ?? {};
       if (!tags.name) continue;
