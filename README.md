@@ -14,6 +14,8 @@ Por defeito usa OpenStreetMap/Overpass e não precisa de API key, conta ou aloja
 - Validação de negócio operacional e contactos públicos.
 - Inferência transparente de receção própria, dono presente e ausência de IT.
 - Estados `Qualificado`, `Validar` e `Rejeitado`.
+- Potencial SaaS de 0–100 baseado em tração, dimensão, decisor, ausência de IT, operação, lacuna digital e contactos.
+- Decomposição visível da pontuação para explicar cada ponto atribuído.
 - Evidência, fonte e data por sinal.
 - Enriquecimento controlado dos websites públicos.
 - Exportação CSV compatível com Excel e CRMs.
@@ -119,6 +121,20 @@ Controlos implementados:
 Confirma sempre a tabela oficial de preços antes de usar a chave: <https://developers.google.com/maps/billing-and-pricing/pricing>
 
 ## Fiabilidade
+
+### Potencial SaaS
+
+O score de 0–100 não mede apenas se o negócio passa nos filtros. Prioriza empresas onde um fundador tende a conseguir descobrir uma dor e vender uma solução:
+
+- Tração comercial / avaliações: 20 pontos.
+- Dimensão da equipa dentro do intervalo: 20 pontos.
+- Proprietário ou diretor acessível: 15 pontos.
+- Ausência de equipa interna de IT: 15 pontos.
+- Operação e receção próprias: 10 pontos.
+- Lacuna digital ou website simples: 10 pontos.
+- Contactos empresariais públicos: 10 pontos.
+
+`75–100` é prioritário, `55–74` é promissor e `0–54` tem menor prioridade. É um score geral de oportunidade; a dor e o momento de compra devem ser novamente avaliados quando definires o SaaS concreto.
 
 Alguns critérios não existem na Google Places API:
 

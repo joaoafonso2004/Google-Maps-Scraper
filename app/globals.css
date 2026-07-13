@@ -116,6 +116,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .summary.green strong { color: var(--green); }
 .summary.amber strong { color: var(--amber); }
 .summary.red strong { color: var(--red); }
+.scoreLegend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 15px; margin: -10px 0 18px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: rgba(255,255,255,.45); font-size: 9px; }
+.scoreLegend b { color: var(--ink); }
+.scoreLegend span { display: inline-flex; align-items: center; gap: 5px; }
+.scoreLegend i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.scoreLegend i.hot { background: var(--green); }
+.scoreLegend i.warm { background: var(--amber); }
+.scoreLegend i.cold { background: var(--red); }
+.scoreLegend em { margin-left: auto; font-style: normal; }
 .emptyState, .loadingState, .emptyFilter { min-height: 430px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 1px dashed #cbc9bf; border-radius: 15px; color: var(--muted); }
 .emptyState h3, .loadingState h3, .emptyFilter h3 { margin: 24px 0 7px; color: var(--ink); font: 700 20px "Manrope"; }
 .emptyState p, .loadingState p, .emptyFilter p { max-width: 430px; margin: 0; font-size: 13px; line-height: 1.6; }
@@ -133,8 +141,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .leadSelect span { width: 23px; height: 23px; display: grid; place-items: center; border: 1px solid #c2c6be; border-radius: 7px; color: transparent; background: white; font-size: 11px; font-weight: 800; }
 .leadSelect input:checked + span { color: var(--forest); border-color: var(--lime); background: var(--lime); box-shadow: 0 0 0 3px rgba(216,242,74,.23); }
 .score { width: 57px; height: 57px; display: grid; place-content: center; text-align: center; border-radius: 50%; color: var(--amber); background: #fbf1dc; }
-.score.qualified { color: var(--green); background: #e0f1e7; }
-.score.rejected { color: var(--red); background: #fae7e3; }
+.score.hot { color: var(--green); background: #e0f1e7; }
+.score.warm { color: var(--amber); background: #fbf1dc; }
+.score.cold { color: var(--red); background: #fae7e3; }
 .score strong { font: 700 18px "Manrope"; line-height: 1; }
 .score small { margin-top: 2px; font-size: 8px; text-transform: uppercase; letter-spacing: 1px; }
 .leadIdentity { min-width: 0; }
@@ -160,6 +169,18 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .leadLinks button { margin-top: 3px; }
 .leadCard details { border-top: 1px solid #ece9df; }
 .leadCard summary { display: flex; justify-content: space-between; padding: 10px 17px; color: var(--muted); background: #fbfaf5; font-size: 10px; cursor: pointer; list-style: none; }
+.scoreBreakdown { padding: 17px; border-bottom: 1px solid #ece9df; background: #f7f6ef; }
+.breakdownTitle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.breakdownTitle b { font: 700 13px "Manrope"; }
+.breakdownTitle span { padding: 5px 8px; border-radius: 999px; color: var(--forest-2); background: #e0eee5; font-size: 9px; font-weight: 800; }
+.breakdownGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.breakdownGrid > div { padding: 10px; border: 1px solid #e1ded4; border-radius: 8px; background: white; }
+.breakdownGrid > div > span { display: flex; justify-content: space-between; gap: 10px; }
+.breakdownGrid b { font-size: 9px; }
+.breakdownGrid em { color: var(--forest-2); font-size: 9px; font-style: normal; font-weight: 800; }
+.scoreBar { height: 4px; margin: 7px 0; overflow: hidden; border-radius: 2px; background: #e5e5de; }
+.scoreBar i { display: block; height: 100%; border-radius: inherit; background: var(--lime); box-shadow: inset 0 0 0 1px rgba(23,60,42,.08); }
+.breakdownGrid small { display: block; color: var(--muted); font-size: 8px; line-height: 1.45; }
 .evidenceGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #ece9df; }
 .evidence { min-height: 100px; display: flex; gap: 10px; padding: 14px 17px; background: white; }
 .evidenceDot { width: 8px; height: 8px; flex: 0 0 8px; margin-top: 4px; border-radius: 50%; background: #a8aca9; }
@@ -263,11 +284,12 @@ footer p { margin: 0; }
   .score { width: 48px; height: 48px; }
   .leadLinks { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; }
   .leadIdentity > p { white-space: normal; }
-  .evidenceGrid, .configGrid, .mailConfig { grid-template-columns: 1fr; }
+  .evidenceGrid, .breakdownGrid, .configGrid, .mailConfig { grid-template-columns: 1fr; }
   .outreach { padding: 60px 18px; }
   .outreachIntro { display: block; }
   .outreachIntro p { margin-top: 14px; }
   .outreachStats { grid-template-columns: repeat(2, 1fr); }
+  .scoreLegend em { width: 100%; margin-left: 0; }
   .outreachGrid { grid-template-columns: 1fr; }
   .previewPanel { grid-column: auto; }
   .senderFields { grid-template-columns: 1fr; }

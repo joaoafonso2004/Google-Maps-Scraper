@@ -27,6 +27,12 @@ function escapeCsv(value: unknown) {
   return `"${string.replaceAll('"', '""')}"`;
 }
 
+function scoreTier(score: number) {
+  if (score >= 75) return "hot";
+  if (score >= 55) return "warm";
+  return "cold";
+}
+
 function ContactActions({ lead }: { lead: Lead }) {
   const tel = phoneLink(lead.phone);
   const whatsapp = whatsappWebLink(lead.phone);
@@ -92,6 +98,8 @@ export default function Home() {
     review: leads.filter((lead) => lead.qualification === "review").length,
     rejected: leads.filter((lead) => lead.qualification === "rejected").length,
   }), [leads]);
+  const averageOpportunity = leads.length ? Math.round(leads.reduce((sum, lead) => sum + lead.score, 0) / leads.length) : 0;
+  const priorityLeads = leads.filter((lead) => lead.score >= 75).length;
   const selectedLeads = useMemo(() => leads.filter((lead) => selectedIds.includes(lead.id)), [leads, selectedIds]);
 
   const setFilter = <K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) => {
@@ -174,12 +182,12 @@ export default function Home() {
   }
 
   function exportCsv() {
-    const headers = ["estado", "score", "nome", "categoria", "area", "morada", "avaliacao", "reviews", "website", "email", "instagram", "telefone", "profissionais", "rececao", "dono_presente", "sem_it", "fonte", "verificado_em", "motivos"];
+    const headers = ["estado", "potencial_saas", "nome", "categoria", "area", "morada", "avaliacao", "reviews", "website", "email", "instagram", "telefone", "profissionais", "rececao", "dono_presente", "sem_it", "fonte", "verificado_em", "motivos", "detalhe_potencial"];
     const rows = visibleLeads.map((lead) => [
       lead.qualification, lead.score, lead.name, categories[lead.category].name, lead.area, lead.address,
       lead.rating, lead.reviewCountKnown ? lead.reviewCount : "por validar", lead.website, lead.email, lead.instagram, lead.phone,
       lead.signals.professionals.count, lead.signals.reception.status, lead.signals.ownerPresent.status,
-      lead.signals.noItTeam.status, lead.source, lead.verifiedAt, lead.qualificationReasons.join("; "),
+      lead.signals.noItTeam.status, lead.source, lead.verifiedAt, lead.qualificationReasons.join("; "), lead.scoreBreakdown?.map((item) => `${item.label}: ${item.points}/${item.maxPoints}`).join("; "),
     ]);
     const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
@@ -211,9 +219,9 @@ export default function Home() {
           <p>Escolhe o setor e a área. O Radar recolhe, filtra e mostra o que ainda precisa de ser confirmado.</p>
         </div>
         <div className="heroMetric">
-          <span>Qualidade da lista</span>
-          <strong>{leads.length ? `${Math.round((counts.qualified / leads.length) * 100)}%` : "—"}</strong>
-          <small>{leads.length ? `${counts.qualified} de ${leads.length} cumprem os filtros` : "Faz uma pesquisa para começar"}</small>
+          <span>Potencial SaaS médio</span>
+          <strong>{leads.length ? `${averageOpportunity}/100` : "—"}</strong>
+          <small>{leads.length ? priorityLeads === 1 ? "1 lead prioritário com 75+" : `${priorityLeads} leads prioritários com 75+` : "Faz uma pesquisa para começar"}</small>
         </div>
       </section>
 
@@ -319,6 +327,7 @@ export default function Home() {
             <button className={view === "review" ? "summary active amber" : "summary amber"} onClick={() => setView("review")}><span>Por validar</span><strong>{counts.review}</strong></button>
             <button className={view === "rejected" ? "summary active red" : "summary red"} onClick={() => setView("rejected")}><span>Rejeitados</span><strong>{counts.rejected}</strong></button>
           </div>
+          {leads.length ? <div className="scoreLegend"><b>Potencial SaaS:</b><span><i className="hot" />75–100 prioritário</span><span><i className="warm" />55–74 promissor</span><span><i className="cold" />0–54 baixa prioridade</span><em>O score é geral; confirma sempre a dor ligada ao SaaS que pretendes criar.</em></div> : null}
 
           {!leads.length && !loading ? (
             <div className="emptyState">
@@ -334,7 +343,7 @@ export default function Home() {
                 <article className="leadCard" key={lead.id}>
                   <div className="leadMain">
                     <label className="leadSelect" title="Selecionar para campanha"><input type="checkbox" checked={selectedIds.includes(lead.id)} onChange={() => toggleLead(lead.id)} /><span>✓</span></label>
-                    <div className={`score ${lead.qualification}`}><strong>{lead.score}</strong><small>score</small></div>
+                    <div className={`score ${scoreTier(lead.score)}`}><strong>{lead.score}</strong><small>SaaS</small></div>
                     <div className="leadIdentity">
                       <div className="leadTitle"><h3>{lead.name}</h3><span className={`qual ${lead.qualification}`}>{qualificationText[lead.qualification]}</span></div>
                       <p>{lead.address}</p>
@@ -352,7 +361,11 @@ export default function Home() {
                     </div>
                   </div>
                   <details>
-                    <summary>Ver critérios e evidências <span>⌄</span></summary>
+                    <summary>Ver potencial, critérios e evidências <span>⌄</span></summary>
+                    {lead.scoreBreakdown?.length ? <div className="scoreBreakdown">
+                      <div className="breakdownTitle"><b>Potencial SaaS</b><span>{lead.score}/100 · {lead.score >= 75 ? "Prioritário" : lead.score >= 55 ? "Promissor" : "Baixa prioridade"}</span></div>
+                      <div className="breakdownGrid">{lead.scoreBreakdown.map((item) => <div key={item.label}><span><b>{item.label}</b><em>{item.points}/{item.maxPoints}</em></span><div className="scoreBar"><i style={{ width: `${(item.points / item.maxPoints) * 100}%` }} /></div><small>{item.detail}</small></div>)}</div>
+                    </div> : null}
                     <div className="evidenceGrid">
                       {Object.values(lead.signals).map((signal) => (
                         <div className="evidence" key={signal.label}>

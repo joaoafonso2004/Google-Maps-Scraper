@@ -44,6 +44,13 @@ export type LeadSignals = {
   websiteQuality: Evidence;
 };
 
+export type ScoreComponent = {
+  label: string;
+  points: number;
+  maxPoints: number;
+  detail: string;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -63,6 +70,7 @@ export type Lead = {
   source: "google" | "osm" | "demo";
   signals: LeadSignals;
   score: number;
+  scoreBreakdown?: ScoreComponent[];
   qualification: "qualified" | "review" | "rejected";
   qualificationReasons: string[];
 };
