@@ -102,6 +102,8 @@ export async function searchOpenStreetMap(request: SearchRequest): Promise<Lead[
           reception: { status: "unverified", label: "Receção própria", detail: "É necessário analisar o website ou confirmar por telefone." },
           ownerPresent: { status: "unverified", label: "Dono presente", detail: "É necessário analisar fontes públicas da empresa." },
           noItTeam: { status: "unverified", label: "Sem equipa de IT", detail: "Não pode ser inferido a partir do OpenStreetMap." },
+          noApp: { status: "unverified", label: "Sem app própria", detail: "Esta fonte não permite confirmar a existência de uma aplicação própria.", sourceUrl },
+          manualContact: { status: phone && !email && !website ? "probable" : "unverified", label: "Contacto/processo manual", detail: phone && !email && !website ? "O telefone é o único canal estruturado publicado nesta fonte; confirmar marcações e atendimento manuais." : "É necessário analisar o website para procurar marcação online, portal ou automações.", sourceUrl },
           publicContact: { status: contact ? "confirmed" : "unverified", label: "Contacto público", detail: contact ? "Contacto empresarial publicado no OpenStreetMap." : "Contacto não encontrado.", sourceUrl },
           operational: { status: tags.opening_hours ? "probable" : "unverified", label: "Operacional", detail: tags.opening_hours ? "Horário de funcionamento publicado no OpenStreetMap." : "Estado operacional por confirmar.", sourceUrl },
           websiteQuality: { status: website ? "unverified" : "probable", label: "Website simples", detail: website ? "Website ainda não analisado." : "Website próprio não publicado nesta fonte.", sourceUrl },

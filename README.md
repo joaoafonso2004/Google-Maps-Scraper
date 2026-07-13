@@ -14,7 +14,7 @@ Por defeito usa OpenStreetMap/Overpass e não precisa de API key, conta ou aloja
 - Validação de negócio operacional e contactos públicos.
 - Inferência transparente de receção própria, dono presente e ausência de IT.
 - Estados `Qualificado`, `Validar` e `Rejeitado`.
-- Potencial SaaS de 0–100 baseado em tração, dimensão, decisor, ausência de IT, operação, lacuna digital e contactos.
+- Potencial SaaS de 0–100 baseado em tração, dimensão, decisor, ausência de IT, operação manual, falta de app/marcação online, lacuna digital e contactos.
 - Decomposição visível da pontuação para explicar cada ponto atribuído.
 - Evidência, fonte e data por sinal.
 - Enriquecimento controlado dos websites públicos.
@@ -126,12 +126,13 @@ Confirma sempre a tabela oficial de preços antes de usar a chave: <https://deve
 
 O score de 0–100 não mede apenas se o negócio passa nos filtros. Prioriza empresas onde um fundador tende a conseguir descobrir uma dor e vender uma solução:
 
-- Tração comercial / avaliações: 20 pontos.
-- Dimensão da equipa dentro do intervalo: 20 pontos.
+- Tração comercial / avaliações: 15 pontos.
+- Dimensão da equipa dentro do intervalo: 15 pontos.
 - Proprietário ou diretor acessível: 15 pontos.
-- Ausência de equipa interna de IT: 15 pontos.
+- Ausência de equipa interna de IT: 10 pontos.
 - Operação e receção próprias: 10 pontos.
-- Lacuna digital ou website simples: 10 pontos.
+- Sem app, sem marcação online/portal e contacto manual: 20 pontos.
+- Lacuna digital ou website simples: 5 pontos.
 - Contactos empresariais públicos: 10 pontos.
 
 `75–100` é prioritário, `55–74` é promissor e `0–54` tem menor prioridade. É um score geral de oportunidade; a dor e o momento de compra devem ser novamente avaliados quando definires o SaaS concreto.

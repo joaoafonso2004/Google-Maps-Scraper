@@ -39,6 +39,8 @@ export type LeadSignals = {
   reception: Evidence;
   ownerPresent: Evidence;
   noItTeam: Evidence;
+  noApp: Evidence;
+  manualContact: Evidence;
   publicContact: Evidence;
   operational: Evidence;
   websiteQuality: Evidence;

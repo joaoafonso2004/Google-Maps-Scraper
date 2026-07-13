@@ -26,6 +26,8 @@ function lead(overrides: Partial<Lead> = {}): Lead {
       reception: { status: "confirmed", label: "Receção", detail: "Sim" },
       ownerPresent: { status: "confirmed", label: "Dono", detail: "Sim" },
       noItTeam: { status: "probable", label: "IT", detail: "Sem sinais" },
+      noApp: { status: "probable", label: "App", detail: "Sem app encontrada" },
+      manualContact: { status: "probable", label: "Manual", detail: "Sem marcação online" },
       publicContact: { status: "confirmed", label: "Contacto", detail: "Sim" },
       operational: { status: "confirmed", label: "Operacional", detail: "Sim" },
       websiteQuality: { status: "probable", label: "Website", detail: "Simples" },
@@ -79,4 +81,14 @@ test("prioriza empresas pequenas com tração, decisor e sem IT", () => {
   const weak = qualifyLead(weakCandidate, defaultFilters());
   assert.ok(strong.score >= 90);
   assert.ok(strong.score > weak.score);
+});
+
+test("dá mais potencial a processos manuais sem app nem marcação online", () => {
+  const manual = qualifyLead(lead(), defaultFilters());
+  const automatedCandidate = lead();
+  automatedCandidate.signals.noApp = { status: "contradicted", label: "App", detail: "Tem app própria" };
+  automatedCandidate.signals.manualContact = { status: "contradicted", label: "Manual", detail: "Tem marcação online e portal" };
+  const automated = qualifyLead(automatedCandidate, defaultFilters());
+  assert.equal(manual.scoreBreakdown?.find((item) => item.label === "Potencial de automação")?.maxPoints, 20);
+  assert.ok(manual.score >= automated.score + 15);
 });

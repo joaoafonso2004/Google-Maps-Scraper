@@ -1,5 +1,7 @@
 import dns from "node:dns/promises";
+import { detectAutomationSignals } from "./automation-signals";
 import { getCategory } from "./catalog";
+import { isPortugueseMobile } from "./contact-links";
 import { isPrivateAddress } from "./network-safety";
 import { qualifyLead } from "./qualification";
 import type { Evidence, Lead, SearchFilters } from "./types";
@@ -112,6 +114,7 @@ export async function enrichLead(lead: Lead, filters: SearchFilters): Promise<Le
   }
   const combinedHtml = pages.map((page) => page.html).join("\n");
   const text = stripHtml(combinedHtml);
+  const lowerText = text.toLocaleLowerCase("pt");
   const config = getCategory(lead.category);
   const emails = findEmails(combinedHtml);
   const emailSourceUrl = emails[0]
@@ -120,10 +123,21 @@ export async function enrichLead(lead: Lead, filters: SearchFilters): Promise<Le
   const instagram = findInstagram(combinedHtml);
   const professionalCount = estimateProfessionalCount(text, config.roleTerms);
   const itTerms = ["equipa de it", "equipa de ti", "informática", "developer", "programador", "cto", "diretor de tecnologia"];
-  const hasItSignal = itTerms.some((term) => text.toLocaleLowerCase("pt").includes(term));
+  const hasItSignal = itTerms.some((term) => lowerText.includes(term));
   const noItTeam: Evidence = hasItSignal
     ? { status: "contradicted", label: "Sem equipa de IT", detail: "Foi encontrada uma função ou equipa tecnológica no website.", sourceUrl: lead.website }
     : { status: pages.length > 1 ? "probable" : "unverified", label: "Sem equipa de IT", detail: pages.length > 1 ? "As páginas públicas analisadas não apresentam funções tecnológicas; é uma inferência, não uma prova de ausência." : "Não há uma página de equipa suficiente para inferir este requisito.", sourceUrl: lead.website };
+  const hasContactForm = /<form\b/i.test(combinedHtml) && /<(?:input|textarea)\b/i.test(combinedHtml);
+  const { noApp, manualContact } = detectAutomationSignals({
+    html: combinedHtml,
+    text,
+    pageCount: pages.length,
+    hasMobilePhone: isPortugueseMobile(lead.phone),
+    hasPhone: Boolean(lead.phone),
+    hasEmail: Boolean(emails.length),
+    hasContactForm,
+    sourceUrl: lead.website,
+  });
 
   const enriched: Lead = {
     ...lead,
@@ -138,6 +152,8 @@ export async function enrichLead(lead: Lead, filters: SearchFilters): Promise<Le
       reception: evidenceFromTerms(text, config.receptionTerms, "Receção própria", lead.website),
       ownerPresent: evidenceFromTerms(text, config.ownerTerms, "Dono presente", lead.website),
       noItTeam,
+      noApp,
+      manualContact,
       publicContact: emails.length || lead.phone
         ? { status: "confirmed", label: "Contacto público", detail: emails.length ? "Email público encontrado no website." : "Telefone público disponível.", sourceUrl: emailSourceUrl }
         : lead.signals.publicContact,

@@ -17,6 +17,11 @@ export function whatsappWebLink(rawPhone?: string) {
   return digits ? `https://web.whatsapp.com/send?phone=${digits}` : undefined;
 }
 
+export function isPortugueseMobile(rawPhone?: string) {
+  const digits = normalizePortugalPhone(rawPhone);
+  return Boolean(digits && /^3519\d{8}$/.test(digits));
+}
+
 export function instagramProfileLink(rawInstagram?: string) {
   if (!rawInstagram) return undefined;
   const value = rawInstagram.trim();

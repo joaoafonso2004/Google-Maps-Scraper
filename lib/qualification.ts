@@ -23,11 +23,11 @@ function tractionPoints(lead: Lead, filters: SearchFilters) {
   if (filters.requireReviewRange && (lead.reviewCount < filters.minReviews || lead.reviewCount > filters.maxReviews)) {
     return { points: 0, detail: `Fora do intervalo de ${filters.minReviews}–${filters.maxReviews} avaliações definido para o ICP.` };
   }
-  if (lead.reviewCount >= 500) return { points: 20, detail: "500+ avaliações: procura e operação comercial muito fortes." };
-  if (lead.reviewCount >= 250) return { points: 17, detail: "250+ avaliações: negócio com tração forte." };
-  if (lead.reviewCount >= 100) return { points: 14, detail: "100+ avaliações: procura já comprovada." };
-  if (lead.reviewCount >= 30) return { points: 10, detail: "30+ avaliações: atividade comercial suficiente para investigar." };
-  if (lead.reviewCount > 0) return { points: 5, detail: "Alguma atividade pública, mas ainda com pouca tração." };
+  if (lead.reviewCount >= 500) return { points: 15, detail: "500+ avaliações: procura e operação comercial muito fortes." };
+  if (lead.reviewCount >= 250) return { points: 13, detail: "250+ avaliações: negócio com tração forte." };
+  if (lead.reviewCount >= 100) return { points: 10, detail: "100+ avaliações: procura já comprovada." };
+  if (lead.reviewCount >= 30) return { points: 7, detail: "30+ avaliações: atividade comercial suficiente para investigar." };
+  if (lead.reviewCount > 0) return { points: 4, detail: "Alguma atividade pública, mas ainda com pouca tração." };
   return { points: 0, detail: "Sem avaliações conhecidas." };
 }
 
@@ -35,23 +35,26 @@ function saasOpportunityScore(lead: Lead, filters: SearchFilters) {
   const traction = tractionPoints(lead, filters);
   const professionalCount = lead.signals.professionals.count;
   const sizeFits = professionalCount !== undefined && professionalCount >= filters.minProfessionals && professionalCount <= filters.maxProfessionals;
-  const sizePoints = professionalCount === undefined ? 5 : sizeFits ? 20 : 0;
+  const sizePoints = professionalCount === undefined ? 4 : sizeFits ? 15 : 0;
   const ownerPoints = evidencePoints(lead.signals.ownerPresent.status, 15);
-  const noItPoints = evidencePoints(lead.signals.noItTeam.status, 15);
+  const noItPoints = evidencePoints(lead.signals.noItTeam.status, 10);
   const receptionPoints = evidencePoints(lead.signals.reception.status, 6);
   const operationalPoints = evidencePoints(lead.signals.operational.status, 4);
-  const digitalGapPoints = evidencePoints(lead.signals.websiteQuality.status, 10);
+  const noAppPoints = evidencePoints(lead.signals.noApp.status, 8);
+  const manualContactPoints = evidencePoints(lead.signals.manualContact.status, 12);
+  const digitalGapPoints = evidencePoints(lead.signals.websiteQuality.status, 5);
   const publicContactPoints = evidencePoints(lead.signals.publicContact.status, 7);
   const directChannels = (lead.email ? 2 : 0) + (lead.phone ? 1 : 0) + (lead.instagram ? 1 : 0);
   const contactPoints = Math.min(10, publicContactPoints + directChannels);
 
   const breakdown: ScoreComponent[] = [
-    { label: "Tração comercial", points: traction.points, maxPoints: 20, detail: traction.detail },
-    { label: "Dimensão adequada", points: sizePoints, maxPoints: 20, detail: professionalCount === undefined ? "Dimensão da equipa por confirmar." : sizeFits ? `${professionalCount} profissionais: dentro do intervalo selecionado.` : `${professionalCount} profissionais: fora do intervalo selecionado.` },
+    { label: "Tração comercial", points: traction.points, maxPoints: 15, detail: traction.detail },
+    { label: "Dimensão adequada", points: sizePoints, maxPoints: 15, detail: professionalCount === undefined ? "Dimensão da equipa por confirmar." : sizeFits ? `${professionalCount} profissionais: dentro do intervalo selecionado.` : `${professionalCount} profissionais: fora do intervalo selecionado.` },
     { label: "Acesso ao decisor", points: ownerPoints, maxPoints: 15, detail: lead.signals.ownerPresent.detail },
-    { label: "Sem equipa interna de IT", points: noItPoints, maxPoints: 15, detail: lead.signals.noItTeam.detail },
+    { label: "Sem equipa interna de IT", points: noItPoints, maxPoints: 10, detail: lead.signals.noItTeam.detail },
     { label: "Processo operacional", points: receptionPoints + operationalPoints, maxPoints: 10, detail: `${lead.signals.reception.detail} ${lead.signals.operational.detail}` },
-    { label: "Lacuna digital", points: digitalGapPoints, maxPoints: 10, detail: lead.signals.websiteQuality.detail },
+    { label: "Potencial de automação", points: noAppPoints + manualContactPoints, maxPoints: 20, detail: `${lead.signals.noApp.detail} ${lead.signals.manualContact.detail}` },
+    { label: "Lacuna digital", points: digitalGapPoints, maxPoints: 5, detail: lead.signals.websiteQuality.detail },
     { label: "Facilidade de contacto", points: contactPoints, maxPoints: 10, detail: [lead.email && "email", lead.phone && "telefone", lead.instagram && "Instagram"].filter(Boolean).length ? `Canais encontrados: ${[lead.email && "email", lead.phone && "telefone", lead.instagram && "Instagram"].filter(Boolean).join(", ")}.` : lead.signals.publicContact.detail },
   ];
 
