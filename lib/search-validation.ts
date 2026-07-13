@@ -24,7 +24,6 @@ export function validateSearchRequest(value: unknown): { data?: SearchBatchReque
   }
   const selectedCategories = [...new Set(value.categories as CategoryKey[])];
   if (selectedCategories.length !== value.categories.length) return { error: "Cada tipo de negócio só pode ser selecionado uma vez." };
-  if (value.provider === "osm" && selectedCategories.includes("custom")) return { error: "A pesquisa personalizada requer a fonte Google." };
   if (typeof value.locationMode !== "string" || !locationModes.has(value.locationMode)) return { error: "Seleciona um modo de localização válido." };
   if (typeof value.area !== "string" || !value.area.trim() || value.area.length > 120) return { error: "Indica uma área de pesquisa válida." };
   if (!Array.isArray(value.locations) || !value.locations.length || value.locations.some((item) => typeof item !== "string" || !item.trim() || item.length > 120)) {

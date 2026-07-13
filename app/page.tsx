@@ -88,9 +88,9 @@ export default function Home() {
         const savedProvider = parsed.provider === "google" ? "google" : "osm";
         setProvider(savedProvider);
         if (parsed.area) setArea(parsed.area);
-        const savedCategories = parsed.categories?.filter((category): category is CategoryKey => Boolean(categories[category]) && (savedProvider === "google" || category !== "custom"));
+        const savedCategories = parsed.categories?.filter((category): category is CategoryKey => Boolean(categories[category]));
         if (savedCategories?.length) setSelectedCategories([...new Set(savedCategories)]);
-        else if (parsed.category && categories[parsed.category] && (savedProvider === "google" || parsed.category !== "custom")) setSelectedCategories([parsed.category]);
+        else if (parsed.category && categories[parsed.category]) setSelectedCategories([parsed.category]);
         if (parsed.locationMode) setLocationMode(savedProvider === "osm" && parsed.locationMode === "country" ? "area" : parsed.locationMode);
       } catch { /* Preferências antigas inválidas são ignoradas. */ }
     }
@@ -247,10 +247,6 @@ export default function Home() {
                 <button type="button" className={provider === "osm" ? "active" : ""} onClick={() => {
                   setProvider("osm");
                   if (locationMode === "country") setLocationMode("area");
-                  setSelectedCategories((current) => {
-                    const supported = current.filter((category) => category !== "custom");
-                    return supported.length ? supported : ["dental"];
-                  });
                 }}><b>Gratuito</b><small>OpenStreetMap</small></button>
                 <button type="button" className={provider === "google" ? "active" : ""} onClick={() => setProvider("google")}><b>Google</b><small>Requer API key</small></button>
               </div>
@@ -260,13 +256,16 @@ export default function Home() {
               <legend>Tipos de negócio</legend>
               <div className="categoryGrid">
                 {(Object.values(categories) as typeof categories[CategoryKey][]).map((item) => (
-                  <button disabled={provider === "osm" && item.key === "custom"} className={selectedCategories.includes(item.key) ? "category active" : "category"} type="button" key={item.key} onClick={() => toggleCategory(item.key)} aria-pressed={selectedCategories.includes(item.key)}>
+                  <button className={selectedCategories.includes(item.key) ? "category active" : "category"} type="button" key={item.key} onClick={() => toggleCategory(item.key)} aria-pressed={selectedCategories.includes(item.key)}>
                     <span>{item.icon}</span>{item.shortName}
                   </button>
                 ))}
               </div>
               <small className="categoryHint">Seleciona um ou vários setores · {selectedCategories.length} {selectedCategories.length === 1 ? "selecionado" : "selecionados"}</small>
-              {selectedCategories.includes("custom") && <input value={customQuery} onChange={(event) => setCustomQuery(event.target.value)} placeholder="Ex.: oficinas de bicicletas" required />}
+              {selectedCategories.includes("custom") && <>
+                <input value={customQuery} onChange={(event) => setCustomQuery(event.target.value)} placeholder="Ex.: oficinas de bicicletas" required />
+                {provider === "osm" && <small className="costHint">No modo gratuito, os resultados personalizados dependem das etiquetas públicas do OpenStreetMap e podem ser menos completos.</small>}
+              </>}
             </fieldset>
 
             <fieldset>
