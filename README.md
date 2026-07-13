@@ -62,7 +62,7 @@ Escolhe **Gratuito · OpenStreetMap** dentro da aplicação. Este modo:
 - permite até seis combinações de setor e localização por pesquisa;
 - não fornece classificações nem avaliações Google;
 - respeita os limites dos serviços públicos e pode pedir para tentares mais tarde quando estão ocupados.
-- espaça os pedidos, reutiliza resultados recentes durante 30 minutos e tenta uma segunda instância Overpass quando a principal está ocupada.
+- espaça os pedidos, reutiliza resultados recentes durante 30 minutos, tenta uma segunda instância Overpass e muda automaticamente para a pesquisa Nominatim quando ambas falham.
 
 Mantém a atribuição OpenStreetMap ao usar ou partilhar os dados. Consulta a política do Nominatim: <https://operations.osmfoundation.org/policies/nominatim/>
 

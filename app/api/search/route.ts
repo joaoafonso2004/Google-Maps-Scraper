@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     const body = validation.data;
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
     const results: Lead[] = [];
+    const failedSectors: string[] = [];
     const googleRequestLimit = Math.max(1, Math.floor(12 / body.categories.length));
 
     for (const [categoryIndex, category] of body.categories.entries()) {
@@ -29,7 +30,11 @@ export async function POST(request: Request) {
 
       if (body.provider === "osm") {
         if (categoryIndex > 0) await new Promise((resolve) => setTimeout(resolve, 1_100));
-        results.push(...await searchOpenStreetMap(categoryRequest));
+        try {
+          results.push(...await searchOpenStreetMap(categoryRequest));
+        } catch {
+          failedSectors.push(getCategory(category).shortName);
+        }
       } else if (apiKey) {
         results.push(...await searchGooglePlaces(categoryRequest, apiKey, googleRequestLimit));
       } else {
@@ -42,13 +47,18 @@ export async function POST(request: Request) {
       }
     }
 
+    if (body.provider === "osm" && failedSectors.length === body.categories.length) {
+      throw new Error("Não foi possível consultar as fontes gratuitas neste momento. A app tentou os servidores principais e o modo de pesquisa alternativo.");
+    }
+
     const leads = [...new Map(results.map((lead) => [`${lead.source}:${lead.id}`, lead])).values()];
     const sectorNotice = body.categories.length > 1 ? ` Pesquisa combinada em ${body.categories.length} setores.` : "";
+    const failureNotice = failedSectors.length ? ` Não foi possível concluir: ${failedSectors.join(", ")}. Os restantes resultados foram mantidos.` : "";
     return NextResponse.json({
       leads,
       mode: body.provider === "osm" ? "free" : apiKey ? "live" : "demo",
       searchedAt: new Date().toISOString(),
-      notice: body.provider === "osm" ? `Resultados gratuitos do OpenStreetMap. Avaliações Google ficam por validar.${sectorNotice}` : apiKey ? sectorNotice.trim() || undefined : `Modo demonstração: adiciona GOOGLE_PLACES_API_KEY ao ficheiro .env.local para obter resultados reais.${sectorNotice}`,
+      notice: body.provider === "osm" ? `Resultados gratuitos do OpenStreetMap. Avaliações Google ficam por validar.${sectorNotice}${failureNotice}` : apiKey ? sectorNotice.trim() || undefined : `Modo demonstração: adiciona GOOGLE_PLACES_API_KEY ao ficheiro .env.local para obter resultados reais.${sectorNotice}`,
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Não foi possível concluir a pesquisa." }, { status: 500 });
